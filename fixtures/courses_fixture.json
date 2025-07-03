@@ -1,0 +1,20 @@
+[
+  {
+    "model": "materials.course",
+    "pk": 1,
+    "fields": {
+      "name": "Python Basics",
+      "preview": "course_preview/python.jpg",
+      "description": "Introduction to Python programming"
+    }
+  },
+  {
+    "model": "materials.course",
+    "pk": 2,
+    "fields": {
+      "name": "C++ Basics",
+      "preview": "course_preview/cpp.jpg",
+      "description": "Introduction to C++ programming"
+    }
+  }
+]
