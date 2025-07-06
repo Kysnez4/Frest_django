@@ -1,11 +1,6 @@
 from rest_framework import viewsets, generics
-from rest_framework.permissions import IsAuthenticated
-
 from materials.models import Course, Lesson
 from materials.serializers import CourseSerializer, LessonSerializer
-
-
-# Create your views here.
 
 
 class CourseViewSet(viewsets.ModelViewSet):
