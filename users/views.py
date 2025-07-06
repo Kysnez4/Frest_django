@@ -1,21 +1,20 @@
 from rest_framework import viewsets, generics, filters
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 
-from users.serializers import UserProfileSerializer, PaymentSerializer
+from users.serializers import UserProfileSerializer, PaymentSerializer, MyTokenObtainPairSerializer
 from users.models import User, Payment
 
 
-# Create your views here.
-
-
-class UserProfileViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+class UserCreateAPIView(generics.CreateAPIView):
     serializer_class = UserProfileSerializer
-    permission_classes = [IsAuthenticated]
+    queryset = User.objects.all()
+    permission_classes = [AllowAny]
 
-    def get_object(self):
-        return self.request.user  # Возвращаем текущего пользователя
+    def perform_create(self, serializer):
+        user = serializer.save(is_active=True)
+        user.set_password(user.password)
+        user.save()
 
 
 class UserProfileAPIView(generics.RetrieveUpdateAPIView):
