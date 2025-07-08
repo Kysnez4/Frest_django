@@ -22,7 +22,6 @@ class UserCreateAPIView(generics.CreateAPIView):
 
 
 class UserProfileAPIView(generics.RetrieveUpdateAPIView):
-    queryset = User.objects.all()
     serializer_class = PrivateUserProfileSerializer  # Базовый сериализатор для PUT/PATCH
 
     def get_permissions(self):
@@ -31,6 +30,9 @@ class UserProfileAPIView(generics.RetrieveUpdateAPIView):
         else:
             self.permission_classes = [IsAuthenticated]
         return super().get_permissions()
+
+    def get_queryset(self):
+        return User.objects.filter(id=self.request.user.id)
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -47,7 +49,6 @@ class UserProfileAPIView(generics.RetrieveUpdateAPIView):
 
 
 class PaymentViewSet(viewsets.ModelViewSet):
-    queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
     filterset_fields = {
@@ -60,4 +61,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
+        return Payment.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
