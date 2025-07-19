@@ -36,3 +36,16 @@ class Lesson(models.Model):
         verbose_name_plural = "Lessons"
         ordering = ['name']
 
+
+class Subscribe(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='subscribers')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'course')  # Одна подписка на курс для пользователя
+        verbose_name = 'Subscription'
+        verbose_name_plural = 'Subscriptions'
+
+    def __str__(self):
+        return f'{self.user.email} subscribed to {self.course.name}'
