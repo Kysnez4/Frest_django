@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
-from materials.models import Lesson, Course
-from users.models import User, Payment
+from materials.models import Lesson, Course, Payment
+from users.models import User
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
