@@ -1,0 +1,19 @@
+[
+  {
+    "model": "users.user",
+    "pk": 1,
+    "fields": {
+      "password": "pbkdf2_sha256$260000$...",
+      "last_login": null,
+      "is_superuser": false,
+      "email": "test@example.com",
+      "is_staff": false,
+      "is_active": true,
+      "phone": "1234567890",
+      "country": "Test Country",
+      "avatar": null,
+      "first_name": "Test",
+      "last_name": "User"
+    }
+  }
+]
