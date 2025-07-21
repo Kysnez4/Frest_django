@@ -41,16 +41,28 @@ class LessonLCAPIView(generics.ListCreateAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     pagination_class = CoursePagination
-    permission_classes = (~IsModer, IsAuthenticated)
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            self.permission_classes = (~IsModer,)
+        else:
+            self.permission_classes = (IsAuthenticated,)
+        return super().get_permissions()
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        serializer.save(owner=self.request.user)
 
 
 class LessonRUDAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
-    permission_classes = (IsAuthenticated, IsModer | IsOwner)
+
+    def get_permissions(self):
+        if self.request.method in ["PUT", "PATCH", "GET"]:
+            self.permission_classes = (IsModer | IsOwner,)
+        else:
+            self.permission_classes = (IsOwner,)
+        return super().get_permissions()
 
 
 class SubscribeAPIView(generics.CreateAPIView, generics.DestroyAPIView):

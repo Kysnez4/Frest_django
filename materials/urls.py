@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from django.urls import path, include
 from materials.views import CourseViewSet, LessonLCAPIView, LessonRUDAPIView, SubscribeAPIView
 
+app_name = "materials"
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet)
 

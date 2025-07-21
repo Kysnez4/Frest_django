@@ -7,7 +7,7 @@ from users.models import User
 from materials.models import Course, Lesson, Subscribe
 
 
-class LessonCRUDTestCase(APITestCase):
+class LessonTestCase(APITestCase):
     def setUp(self):
         # Создаем группы прав
         self.moder_group = Group.objects.create(name='moders')
@@ -47,8 +47,8 @@ class LessonCRUDTestCase(APITestCase):
         )
 
         # URL для уроков
-        self.lessons_list_url = reverse('materials:lessons-list')
-        self.lesson_detail_url = reverse('materials:lessons-detail', args=[self.lesson.id])
+        self.lessons_list_url = reverse("materials:lesson-lc")
+        self.lesson_detail_url = reverse("materials:lesson-rud", args=[self.lesson.id])
 
     def test_lesson_create_by_owner(self):
         """Тест создания урока владельцем"""
@@ -143,7 +143,9 @@ class SubscriptionTestCase(APITestCase):
         )
 
         # URL для подписок
-        self.subscribe_url = reverse('materials:course-subscribe', kwargs={'course_id': self.course.id})
+        self.subscribe_url = reverse(
+            "materials:subscribe",
+            kwargs={"course_id": self.course.id})
 
     def test_subscribe(self):
         """Тест подписки на курс"""
@@ -180,7 +182,7 @@ class SubscriptionTestCase(APITestCase):
     def test_course_with_subscription_flag(self):
         """Тест что курс возвращает флаг подписки"""
         # URL для получения курса
-        course_detail_url = reverse('materials:courses-detail', args=[self.course.id])
+        course_detail_url = reverse("materials:course-detail", args=[self.course.id])
 
         # Проверяем для неподписанного пользователя
         self.client.force_authenticate(user=self.user1)

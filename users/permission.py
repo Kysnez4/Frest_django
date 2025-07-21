@@ -12,7 +12,7 @@ class IsOwner(permissions.BasePermission):
     message = 'You are not the owner of this object'
 
     def has_object_permission(self, request, view, obj):
-        if obj.user == request.user:
+        if obj.owner == request.user:
             return True
 
         return request.user == obj
