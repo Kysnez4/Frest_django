@@ -60,6 +60,8 @@ class LessonTestCase(APITestCase):
             'video_url': 'https://www.youtube.com/new'
         }
         response = self.client.post(self.lessons_list_url, data)
+        if response.status_code != status.HTTP_201_CREATED:
+            print('RESPONSE DATA:', response.data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Lesson.objects.count(), 2)
         self.assertEqual(Lesson.objects.last().owner, self.owner)

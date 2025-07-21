@@ -9,6 +9,7 @@ class LessonSerializer(serializers.ModelSerializer):
         fields = '__all__'
         extra_kwargs = {
             'description': {'validators': [ExternalLinkValidator()]},
+            'owner': {'read_only': True},
         }
 
     def validate_video_url(self, value):

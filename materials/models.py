@@ -5,9 +5,9 @@ from users.models import User
 
 # Create your models here.
 class Course(models.Model):
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
-    preview = models.ImageField(upload_to='course_preview/')
+    preview = models.ImageField(upload_to='course_preview/', null=True, blank=True)
     description = models.TextField()
 
     def __str__(self):
@@ -20,11 +20,11 @@ class Course(models.Model):
 
 
 class Lesson(models.Model):
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='lessons')
     name = models.CharField(max_length=100)
     description = models.TextField()
-    preview = models.ImageField(upload_to='lesson_preview/')
+    preview = models.ImageField(upload_to='lesson_preview/', blank=True, null=True)
     video_url = models.URLField()
 
     def __str__(self):
