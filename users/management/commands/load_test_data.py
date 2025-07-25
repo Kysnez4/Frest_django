@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
-from materials.models import Course, Lesson
-from users.models import User, Payment
+from materials.models import Course, Lesson, Payment
+from users.models import User
 from decimal import Decimal
 
 class Command(BaseCommand):

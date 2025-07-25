@@ -1,6 +1,6 @@
 [
   {
-    "model": "users.payment",
+    "model": "materials.payment",
     "pk": 1,
     "fields": {
       "user": 1,
@@ -12,15 +12,15 @@
     }
   },
   {
-    "model": "users.payment",
+    "model": "materials.payment",
     "pk": 2,
     "fields": {
       "user": 1,
-      "date": "2023-10-01",
-      "paid_course": 2,
-      "paid_lesson": null,
-      "amount": "100.50",
-      "payment_method": "transfer"
+      "date": "2023-10-02",
+      "paid_course": null,
+      "paid_lesson": 1,
+      "amount": "50.00",
+      "payment_method": "cash"
     }
   }
 ]

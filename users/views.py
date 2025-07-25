@@ -2,8 +2,9 @@ from rest_framework import viewsets, generics, filters
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 
+from materials.models import Payment
 from users.permission import IsOwner
-from users.models import User, Payment
+from users.models import User
 from users.serializers import (PaymentSerializer,
                                PrivateUserProfileSerializer,
                                PublicUserProfileSerializer,
