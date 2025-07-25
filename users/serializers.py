@@ -48,9 +48,21 @@ class PaymentSerializer(serializers.ModelSerializer):
     )
     user = serializers.SlugRelatedField(
         slug_field='email',
-        queryset=User.objects.all()
+        queryset=User.objects.all(),
+        required=False
     )
+    payment_link = serializers.SerializerMethodField()
 
     class Meta:
         model = Payment
         fields = '__all__'
+        read_only_fields = ['user', 'date', 'stripe_product_id', 'stripe_price_id',
+                          'stripe_session_id', 'stripe_payment_link', 'stripe_payment_status']
+
+    def get_payment_link(self, obj):
+        return obj.stripe_payment_link
+
+    def validate(self, data):
+        if not data.get('paid_course') and not data.get('paid_lesson'):
+            raise serializers.ValidationError("Необходимо указать курс или урок для оплаты")
+        return data

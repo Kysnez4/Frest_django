@@ -3,11 +3,14 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.urls import reverse
 
 from materials.models import Course, Lesson, Subscribe
 from materials.paginators import CoursePagination
 from materials.serializers import CourseSerializer, LessonSerializer, SubscriptionSerializer, CourseDetailSerializer
 from users.permission import IsModer, IsOwner
+from users.serializers import PaymentSerializer
+from users.services.stripe_service import create_stripe_session, create_stripe_product, create_stripe_price
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -87,3 +90,47 @@ class SubscribeAPIView(generics.CreateAPIView, generics.DestroyAPIView):
         )
         subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PaymentCreateAPIView(generics.CreateAPIView):
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        payment = serializer.save(user=self.request.user)
+
+        # Создаем продукт в Stripe
+        product = create_stripe_product(payment)
+        payment.stripe_product_id = product.id
+
+        # Создаем цену в Stripe
+        price = create_stripe_price(payment, product.id)
+        payment.stripe_price_id = price.id
+
+        # Создаем сессию оплаты
+        success_url = self.request.build_absolute_uri(
+            reverse('payment-success')
+        )
+        cancel_url = self.request.build_absolute_uri(
+            reverse('payment-cancel')
+        )
+
+        session = create_stripe_session(
+            price.id,
+            success_url,
+            cancel_url
+        )
+
+        payment.stripe_session_id = session.id
+        payment.stripe_payment_link = session.url
+        payment.save()
+
+
+class PaymentSuccessAPIView(generics.GenericAPIView):
+    def get(self, request, *args, **kwargs):
+        return Response({"status": "Payment successful"}, status=status.HTTP_200_OK)
+
+
+class PaymentCancelAPIView(generics.GenericAPIView):
+    def get(self, request, *args, **kwargs):
+        return Response({"status": "Payment cancelled"}, status=status.HTTP_200_OK)
