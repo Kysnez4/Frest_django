@@ -1,16 +1,23 @@
+from datetime import timedelta
+
 from rest_framework import viewsets, generics, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.urls import reverse
+from django.utils import timezone
 
 from materials.models import Course, Lesson, Subscribe
 from materials.paginators import CoursePagination
-from materials.serializers import CourseSerializer, LessonSerializer, SubscriptionSerializer, CourseDetailSerializer
+from materials.tasks import send_course_update_notification
 from users.permission import IsModer, IsOwner
 from users.serializers import PaymentSerializer
 from users.services.stripe_service import create_stripe_session, create_stripe_product, create_stripe_price
+from materials.serializers import (CourseSerializer,
+                                   LessonSerializer,
+                                   SubscriptionSerializer,
+                                   CourseDetailSerializer)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -30,6 +37,11 @@ class CourseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        if timezone.now() - instance.last_update > timedelta(hours=4):
+            send_course_update_notification.delay(instance.id)
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['request'] = self.request
@@ -39,6 +51,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         if self.action == 'retrieve':
             return CourseDetailSerializer
         return CourseSerializer
+
 
 class LessonLCAPIView(generics.ListCreateAPIView):
     queryset = Lesson.objects.all()
@@ -66,6 +79,15 @@ class LessonRUDAPIView(generics.RetrieveUpdateDestroyAPIView):
         else:
             self.permission_classes = (IsOwner,)
         return super().get_permissions()
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        instance.course.last_update = timezone.now()
+        instance.course.save()
+
+        # Проверяем, нужно ли отправлять уведомление
+        if timezone.now() - instance.course.last_update > timedelta(hours=4):
+            send_course_update_notification.delay(instance.course.id)
 
 
 class SubscribeAPIView(generics.CreateAPIView, generics.DestroyAPIView):
