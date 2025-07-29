@@ -32,9 +32,9 @@ env/
 *.ipynb_checkpoints/
 
 # Ignore Docker Compose files
-docker-compose.yml
+
 docker-compose.override.yml
-docker-compose.*.yml
+
 
 # Ignore Celery Beat schedule file
 celerybeat-schedule
