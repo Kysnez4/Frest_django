@@ -3,7 +3,7 @@ version: '3.12'
 services:
   web:
     build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    command: python manage.py migrate && python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/code
       - static_volume:/code/static
@@ -17,10 +17,14 @@ services:
 
   db:
     image: postgres:16.0
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    env_file:
-      - ./.env
 
   redis:
     image: redis
@@ -31,7 +35,7 @@ services:
 
   celery:
     build: .
-    command: poetry run celery -A config worker -l INFO -P eventlet
+    command: poetry run celery -A config worker -l INFO
     env_file:
       - .env
     depends_on:
@@ -48,5 +52,5 @@ services:
       - redis
 
 volumes:
-  postgres_data: {}
-  static_volume: {}
+  postgres_data:
+  static_volume:

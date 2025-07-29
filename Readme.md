@@ -12,11 +12,7 @@
    docker-compose up -d
    ```
    
-2. Примените миграции Django:
-    ```bash
-    docker-compose exec web python manage.py migrate
-    ```
-   
-3. Приложение будет доступно по адресу: http://localhost:8000
+2. Приложение будет доступно по адресу: http://localhost:8000
+
 ### Итог:
 - Ваш текущий `docker-compose.yml` рабочий, но добавление `healthcheck` и уточнение `Readme.md` сделает запуск более надежным и понятным для других разработчиков.
