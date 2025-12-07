@@ -1,157 +1,71 @@
-name: Deploy to Server
+name: Django CI/CD
 
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch:
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
     services:
       postgres:
-        image: postgres:16.0
+        image: postgres:16
         env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: test_db
+        ports: [5432:5432]
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-        ports:
-          - 5432:5432
-      
-      redis:
-        image: redis
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
 
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
-    
+        python-version: '3.12'
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install poetry
-        poetry install
-    
-    - name: Run tests
+        pip install -r requirements.txt
+
+    - name: Run migrations & tests
       env:
-        DB_NAME: test_db
-        DB_USER: test_user
-        DB_PASSWORD: test_password
-        DB_HOST: localhost
-        DB_PORT: 5432
-        REDIS_URL: redis://localhost:6379
-        SECRET_KEY: test-secret-key
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        DATABASE_NAME: test_db
+        DATABASE_USER: postgres
+        DATABASE_PASSWORD: postgres
+        DATABASE_HOST: localhost
+        DATABASE_PORT: 5432
+        TEST_ENV: true
       run: |
-        poetry run python manage.py test
-
-  build-and-push:
-    needs: test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        python manage.py migrate
+        python manage.py test
 
   deploy:
-    needs: build-and-push
     runs-on: ubuntu-latest
-    
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Deploy to server
-      uses: appleboy/ssh-action@v1.0.3
+      uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
         script: |
-          cd /path/to/your/project
-          
-          # Pull latest image
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          
-          # Stop and remove old containers
-          docker-compose down
-          
-          # Update docker-compose.yml if needed
+          cd ${{ secrets.DEPLOY_DIR }}
           git pull origin main
-          
-          # Start services
-          docker-compose up -d
-          
-          # Run migrations
-          docker-compose exec web python manage.py migrate
-          
-          # Collect static files
-          docker-compose exec web python manage.py collectstatic --noinput
-          
-          # Restart services
-          docker-compose restart web
-          
-          echo "Deployment completed successfully!"
-
-  health-check:
-    needs: deploy
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Check application health
-      run: |
-        echo "Waiting for services to start..."
-        sleep 30
-        
-        # Check if web service is responding
-        response=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.SERVER_HOST }} || echo "000")
-        
-        if [ "$response" -eq 200 ] || [ "$response" -eq 302 ]; then
-          echo "✅ Application is healthy - HTTP $response"
-        else
-          echo "❌ Application health check failed - HTTP $response"
-          exit 1
-        fi
+          source venv/bin/activate
+          pip install -r requirements.txt
+          python manage.py migrate
+          python manage.py collectstatic --noinput --clear
+          sudo systemctl restart gunicorn
