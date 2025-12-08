@@ -87,21 +87,16 @@ jobs:
 
       - name: Copy project files to server
         run: |
-          rsync -avz \
-            --rsync-path="sudo rsync" \
-            --exclude '__pycache__' \
-            --exclude '*.pyc' \
-            --exclude '.git' \
-            --exclude '.env' \
-            --exclude 'venv' \
-            --exclude '*.sqlite3' \
-            --exclude 'media' \
-            --exclude 'static' \
-            . \
-            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_DIR }}/
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          cd ${{ secrets.DEPLOY_DIR }}
           
-          echo "Files copied successfully!"
-          ls
+          # Если это git репозиторий, обновляем, иначе клонируем
+          if [ -d .git ]; then
+            git pull origin main
+          else
+            git clone https://github.com/${{ github.repository }} .
+          fi          
+          EOF
 
       - name: Install dependencies on server
         run: |
@@ -109,6 +104,26 @@ jobs:
           cd ${{ secrets.DEPLOY_DIR }}
           source venv/bin/activate
           sudo pip3 install -r requirements.txt --break-system-packages
+          
+          echo 'DEBUG=${{ secrets.DEBUG }}' > .env
+          echo 'SECRET_KEY=${{ secrets.SECRET_KEY }}' >> .env
+          echo 'DB_NAME=${{ secrets.DB_NAME }}' >> .env
+          echo 'DB_USER=${{ secrets.DB_USER }}' >> .env
+          echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' >> .env
+          echo 'DB_HOST=${{ secrets.DB_HOST }}' >> .env
+          echo 'EMAIL_BACKEND=${{ secrets.EMAIL_BACKEND }}' >> .env
+          echo 'EMAIL_HOST=${{ secrets.EMAIL_HOST }}' >> .env
+          echo 'EMAIL_PORT=${{ secrets.EMAIL_PORT }}' >> .env
+          echo 'EMAIL_USE_TLS=${{ secrets.EMAIL_USE_TLS }}' >> .env
+          echo 'EMAIL_USE_SSL=${{ secrets.EMAIL_USE_SSL }}' >> .env
+          echo 'EMAIL_HOST_USER=${{ secrets.EMAIL_HOST_USER }}' >> .env
+          echo 'EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}' >> .env
+          echo 'DEFAULT_FROM_EMAIL=${{ secrets.DEFAULT_FROM_EMAIL }}' >> .env
+          echo 'CACHE_ENABLED=${{ secrets.CACHE_ENABLED }}' >> .env
+          echo 'STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}' >> .env
+          echo 'STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}' >> .env
+          echo 'STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}' >> .env
+          
           EOF
 
       - name: Apply migrations on server
