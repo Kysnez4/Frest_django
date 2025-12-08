@@ -92,9 +92,9 @@ jobs:
           
           # Если это git репозиторий, обновляем, иначе клонируем
           if [ -d .git ]; then
-            git pull origin main
+            sudo git pull origin main
           else
-            git clone https://github.com/${{ github.repository }} .
+            sudo git clone https://github.com/${{ github.repository }} .
           fi          
           EOF
 
@@ -144,13 +144,11 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
           cd ${{ secrets.DEPLOY_DIR }}
-          source venv/bin/activate
-          python manage.py migrate
+          ./venv/bin/pip python manage.py migrate
           EOF
       - name: Collect static files on server
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
           cd ${{ secrets.DEPLOY_DIR }}
-          source venv/bin/activate
-          python manage.py collectstatic --noinput
+          ./venv/bin/pip python manage.py collectstatic --noinput
           EOF
