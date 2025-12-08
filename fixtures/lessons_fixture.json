@@ -1,0 +1,38 @@
+[
+  {
+    "model": "materials.lesson",
+    "pk": 1,
+    "fields": {
+      "owner": 1,
+      "course": 1,
+      "name": "Variables and Data Types",
+      "description": "Learn about Python variables",
+      "preview": "lesson_preview/variables.jpg",
+      "video_url": "https://example.com/video1"
+    }
+  },
+  {
+    "model": "materials.lesson",
+    "pk": 2,
+    "fields": {
+      "owner": 1,
+      "course": 1,
+      "name": "Functions",
+      "description": "Learn about Python functions",
+      "preview": "lesson_preview/functions.jpg",
+      "video_url": "https://example.com/video2"
+    }
+  },
+  {
+    "model": "materials.lesson",
+    "pk": 3,
+    "fields": {
+      "owner": 1,
+      "course": 2,
+      "name": "Basic Syntax",
+      "description": "Learn C++ basic syntax",
+      "preview": "lesson_preview/syntax.jpg",
+      "video_url": "https://example.com/video3"
+    }
+  }
+]

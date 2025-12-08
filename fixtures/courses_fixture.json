@@ -1,0 +1,22 @@
+[
+  {
+    "model": "materials.course",
+    "pk": 1,
+    "fields": {
+      "owner": 1,
+      "name": "Python Basics",
+      "preview": "course_preview/python.jpg",
+      "description": "Introduction to Python programming"
+    }
+  },
+  {
+    "model": "materials.course",
+    "pk": 2,
+    "fields": {
+      "owner": 1,
+      "name": "C++ Basics",
+      "preview": "course_preview/cpp.jpg",
+      "description": "Introduction to C++ programming"
+    }
+  }
+]
