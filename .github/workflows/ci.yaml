@@ -88,8 +88,10 @@ jobs:
       - name: Copy project files to server
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-          sudo mkdir -p "\$DEPLOY_DIR"
+          sudo mkdir -p "${{ secrets.DEPLOY_DIR }}"
           cd ${{ secrets.DEPLOY_DIR }}
+          
+          sudo chown -R $USER:$USER venv 2>/dev/null || chown -R $USER:$USER venv 2>/dev/null
           
           # Если это git репозиторий, обновляем, иначе клонируем
           if [ -d .git ]; then
@@ -105,10 +107,8 @@ jobs:
           cd ${{ secrets.DEPLOY_DIR }}
           # Устанавливаем python3-venv если нет
           if ! command -v python3 -m venv &> /dev/null; then
-          sudo apt-get update && sudo apt-get install -y python3-venv python3-pip
+          sudo apt-get install -y python3-venv python3-pip
           fi
-          
-          sudo chown -R $USER:$USER venv 2>/dev/null || chown -R $USER:$USER venv 2>/dev/null
           
           # Создаем/обновляем виртуальное окружение
           if [ ! -d "venv" ]; then
