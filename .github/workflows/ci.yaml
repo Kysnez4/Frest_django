@@ -76,8 +76,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-
     steps:
     - uses: actions/checkout@v4
 
@@ -106,10 +104,6 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         script: |
           cd ${{ secrets.DEPLOY_DIR }}
-          
-          # Обновляем код
-          git pull origin main
-          
 
           cat > .env << 'ENVFILE'
           DEBUG=${{ secrets.DEBUG }}
