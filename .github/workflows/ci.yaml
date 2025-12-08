@@ -91,7 +91,7 @@ jobs:
           sudo mkdir -p "${{ secrets.DEPLOY_DIR }}"
           cd ${{ secrets.DEPLOY_DIR }}
           
-          sudo chown -R $USER:$USER venv 2>/dev/null || chown -R $USER:$USER venv 2>/dev/null
+          sudo chown -R $USER:$USER ${{ secrets.DEPLOY_DIR }} 2>/dev/null || chown -R $USER:$USER ${{ secrets.DEPLOY_DIR }} 2>/dev/null
           
           # Если это git репозиторий, обновляем, иначе клонируем
           if [ -d .git ]; then
