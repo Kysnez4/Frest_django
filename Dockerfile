@@ -1,29 +1,20 @@
-FROM python:3.12-slim
+FROM python:3.12
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
 WORKDIR /code
 
-# Устанавливаем системные зависимости
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    postgresql-client \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем Poetry
-RUN pip install --no-cache-dir poetry
+COPY requirements.txt /code/
 
-# Копируем зависимости
-COPY pyproject.toml poetry.lock* /code/
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
 
-# Устанавливаем зависимости проекта
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi --no-root
-
-# Копируем проект
 COPY . /code/
-
-# Создаем статическую папку
-RUN mkdir -p /code/static
-
-EXPOSE 8000
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
