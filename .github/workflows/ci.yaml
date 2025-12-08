@@ -77,10 +77,18 @@ jobs:
     needs: test
 
     steps:
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.6.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_KEY }}
+      - name: Setup SSH key
+        run: |
+            # Создаем SSH ключ правильно
+            mkdir -p ~/.ssh
+            echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            
+            # Добавляем сервер в known_hosts
+            ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null
+            
+            # Проверяем ключ
+            ssh-keygen -l -f ~/.ssh/id_rsa || echo "Key check failed, but continuing..."
 
       - name: Copy project files to server
         run: |
