@@ -1,157 +1,95 @@
-name: Django CI
+name: Django CI/CD with Docker
 
-on: [ push ]
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
-      - name: Check out code
-        uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-      - name: Wait for PostgreSQL
-        run: |
-          echo "Waiting for PostgreSQL to be ready..."
-          for i in {1..30}; do
-            if pg_isready -h localhost -p 5432 -U postgres; then
-              echo "✅ PostgreSQL ready!"
-              exit 0
-            fi
-            echo "Attempt $i/30..."
-            sleep 2
-          done
-          echo "❌ PostgreSQL failed to start"
-          exit 1
+    - name: Start Docker Compose for tests
+      run: |
+        # Копируем .env.example если нет .env
+        cp .env.example .env 2>/dev/null || echo "No .env.example found"
+        
+        # Запускаем тестовые сервисы
+        docker-compose -f docker-compose.test.yml up -d db redis
+        
+        # Ждем готовности базы
+        timeout 30s bash -c 'until docker-compose -f docker-compose.test.yml exec db pg_isready -U postgres; do sleep 2; done'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+    - name: Build and test
+      env:
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+      run: |
+        # Собираем образ
+        docker-compose -f docker-compose.test.yml build web
+        
+        # Запускаем тесты в контейнере
+        docker-compose -f docker-compose.test.yml run --rm web \
+          sh -c "python manage.py migrate && python manage.py test"
 
-      - name: Set environment variables
-        run: echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
-
-      - name: Run migrations
-        env:
-          DB_NAME: test_db
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_HOST: localhost
-          DB_PORT: 5432
-          TEST_ENV: true
-        run: python manage.py migrate
-
-      - name: Run tests
-        env:
-          DB_NAME: test_db
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_HOST: localhost
-          DB_PORT: 5432
-          TEST_ENV: true
-        run: python manage.py test
+    - name: Stop Docker Compose
+      if: always()
+      run: |
+        docker-compose -f docker-compose.test.yml down -v
 
   deploy:
     runs-on: ubuntu-latest
     needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
 
     steps:
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.6.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_KEY }}
+    - uses: actions/checkout@v4
 
-      - name: Add to known_hosts
-        run: ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-
-      - name: Copy project files to server
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-          sudo mkdir -p "${{ secrets.DEPLOY_DIR }}"
+    - name: Deploy with Docker Compose
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
           cd ${{ secrets.DEPLOY_DIR }}
           
-          sudo chown -R $USER:$USER ${{ secrets.DEPLOY_DIR }} 2>/dev/null || chown -R $USER:$USER ${{ secrets.DEPLOY_DIR }} 2>/dev/null
+          # Обновляем код
+          git pull origin main
           
-          # Если это git репозиторий, обновляем, иначе клонируем
-          if [ -d .git ]; then
-            sudo git pull origin main
-          else
-            sudo git clone https://github.com/${{ github.repository }} .
-          fi          
-          EOF
-
-      - name: Install dependencies on server
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-          cd ${{ secrets.DEPLOY_DIR }}
-          # Устанавливаем python3-venv если нет
-          if ! command -v python3 -m venv &> /dev/null; then
-          sudo apt-get install -y python3-venv python3-pip
-          fi
-          
-          # Создаем/обновляем виртуальное окружение
-          if [ ! -d "venv" ]; then
-          python3 -m venv venv
-          fi
-          
-          # Используем pip из venv
-          ./venv/bin/pip install --upgrade pip
-          ./venv/bin/pip install -r requirements.txt --break-system-packages
-          
-          # Создаем .env файл
-          cat > .env << 'ENVFILE'
-          DEBUG=${{ secrets.DEBUG }}
+          # Копируем .env файл если нужно
+          if [ ! -f .env ]; then
+            echo "Creating .env file..."
+            cat > .env << 'EOF'
+          DEBUG=False
           SECRET_KEY=${{ secrets.SECRET_KEY }}
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_HOST=${{ secrets.DB_HOST }}
-          DB_PORT=${{ secrets.DB_PORT }}
-          EMAIL_BACKEND=${{ secrets.EMAIL_BACKEND }}
-          EMAIL_HOST=${{ secrets.EMAIL_HOST }}
-          EMAIL_PORT=${{ secrets.EMAIL_PORT }}
-          EMAIL_USE_TLS=${{ secrets.EMAIL_USE_TLS }}
-          EMAIL_USE_SSL=${{ secrets.EMAIL_USE_SSL }}
-          EMAIL_HOST_USER=${{ secrets.EMAIL_HOST_USER }}
-          EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}
-          DEFAULT_FROM_EMAIL=${{ secrets.DEFAULT_FROM_EMAIL }}
-          CACHE_ENABLED=${{ secrets.CACHE_ENABLED }}
-          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
-          STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          ENVFILE
+          DB_HOST=db
+          DB_PORT=5432
+          REDIS_URL=redis://redis:6379/0
+          CELERY_BROKER_URL=redis://redis:6379/0
+          CELERY_RESULT_BACKEND=redis://redis:6379/0
           EOF
-
-      - name: Apply migrations on server
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-          cd ${{ secrets.DEPLOY_DIR }}
-          ./venv/bin/python manage.py migrate
-          EOF
-      - name: Collect static files on server
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-          cd ${{ secrets.DEPLOY_DIR }}
-          ./venv/bin/python manage.py migrate
-          EOF
+          fi
+          
+          # Останавливаем старые контейнеры
+          docker-compose down || true
+          
+          # Собираем и запускаем
+          docker-compose up -d --build
+          
+          # Ждем запуска и выполняем миграции
+          sleep 10
+          docker-compose exec -T web python manage.py migrate
+          docker-compose exec -T web python manage.py collectstatic --noinput --clear
+          
+          echo "✅ Deployment completed successfully!"
