@@ -107,6 +107,8 @@ jobs:
           sudo apt-get update && sudo apt-get install -y python3-venv python3-pip
           fi
           
+          sudo chown -R $USER:$USER venv 2>/dev/null || chown -R $USER:$USER venv 2>/dev/null
+          
           # Создаем/обновляем виртуальное окружение
           if [ ! -d "venv" ]; then
           python3 -m venv venv
