@@ -34,6 +34,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Wait for PostgreSQL
+        run: |
+          # Ждем пока PostgreSQL будет готов принимать подключения
+          for i in {1..30}; do
+            if nc -z localhost 5432; then
+              echo "PostgreSQL is running"
+              if pg_isready -h localhost -p 5432 -U postgres; then
+                echo "PostgreSQL is ready to accept connections"
+                break
+              fi
+            fi
+            echo "Waiting for PostgreSQL... ($i/30)"
+            sleep 2
+          done
+
       - name: Run migrations & tests
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
