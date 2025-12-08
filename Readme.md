@@ -1,6 +1,8 @@
 # 🚀 Django + Docker + Celery + Redis + PostgreSQL
 Полная инструкция по развертыванию Django проекта с Docker, Celery, Redis и PostgreSQL.
 
+IP: http://158.160.73.53:8000/
+
 ## 📋 Требования
 Docker (версия 20.10+)
 
