@@ -108,8 +108,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
           cd ${{ secrets.DEPLOY_DIR }}
           sudo source venv/bin/activate
-          pip install --upgrade pip
-          sudo apt-get install -y $(grep -E '^[^#]' requirements.txt | cut -d= -f1 | xargs)
+          sudo pip3 install -r requirements.txt
           EOF
 
       - name: Apply migrations on server
