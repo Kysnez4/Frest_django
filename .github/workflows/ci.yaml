@@ -102,28 +102,42 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
           cd ${{ secrets.DEPLOY_DIR }}
-          source venv/bin/activate
-          sudo pip3 install -r requirements.txt --break-system-packages
+          # Устанавливаем python3-venv если нет
+          if ! command -v python3 -m venv &> /dev/null; then
+          sudo apt-get update && sudo apt-get install -y python3-venv python3-pip
+          fi
           
-          echo 'DEBUG=${{ secrets.DEBUG }}' > .env
-          echo 'SECRET_KEY=${{ secrets.SECRET_KEY }}' >> .env
-          echo 'DB_NAME=${{ secrets.DB_NAME }}' >> .env
-          echo 'DB_USER=${{ secrets.DB_USER }}' >> .env
-          echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' >> .env
-          echo 'DB_HOST=${{ secrets.DB_HOST }}' >> .env
-          echo 'EMAIL_BACKEND=${{ secrets.EMAIL_BACKEND }}' >> .env
-          echo 'EMAIL_HOST=${{ secrets.EMAIL_HOST }}' >> .env
-          echo 'EMAIL_PORT=${{ secrets.EMAIL_PORT }}' >> .env
-          echo 'EMAIL_USE_TLS=${{ secrets.EMAIL_USE_TLS }}' >> .env
-          echo 'EMAIL_USE_SSL=${{ secrets.EMAIL_USE_SSL }}' >> .env
-          echo 'EMAIL_HOST_USER=${{ secrets.EMAIL_HOST_USER }}' >> .env
-          echo 'EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}' >> .env
-          echo 'DEFAULT_FROM_EMAIL=${{ secrets.DEFAULT_FROM_EMAIL }}' >> .env
-          echo 'CACHE_ENABLED=${{ secrets.CACHE_ENABLED }}' >> .env
-          echo 'STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}' >> .env
-          echo 'STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}' >> .env
-          echo 'STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}' >> .env
+          # Создаем/обновляем виртуальное окружение
+          if [ ! -d "venv" ]; then
+          python3 -m venv venv
+          fi
           
+          # Используем pip из venv
+          ./venv/bin/pip install --upgrade pip
+          ./venv/bin/pip install -r requirements.txt --break-system-packages
+          
+          # Создаем .env файл
+          cat > .env << 'ENVFILE'
+          DEBUG=${{ secrets.DEBUG }}
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          EMAIL_BACKEND=${{ secrets.EMAIL_BACKEND }}
+          EMAIL_HOST=${{ secrets.EMAIL_HOST }}
+          EMAIL_PORT=${{ secrets.EMAIL_PORT }}
+          EMAIL_USE_TLS=${{ secrets.EMAIL_USE_TLS }}
+          EMAIL_USE_SSL=${{ secrets.EMAIL_USE_SSL }}
+          EMAIL_HOST_USER=${{ secrets.EMAIL_HOST_USER }}
+          EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}
+          DEFAULT_FROM_EMAIL=${{ secrets.DEFAULT_FROM_EMAIL }}
+          CACHE_ENABLED=${{ secrets.CACHE_ENABLED }}
+          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          ENVFILE
           EOF
 
       - name: Apply migrations on server
