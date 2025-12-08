@@ -127,17 +127,13 @@ jobs:
           STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
           ENVFILE
           
-          sudo usermod -aG docker $USER
-          sudo usermod -aG docker ${{ secrets.SSH_USER }}
 
           # Останавливаем старые контейнеры
-          docker-compose down || true
+          sudo docker-compose down
           
           # Собираем и запускаем
-          docker-compose up -d --build
+          sudo docker-compose up -d --build
           
           # Ждем запуска и выполняем миграции
           sleep 10
-          docker-compose exec -T web python manage.py migrate
-          
-          echo "✅ Deployment completed successfully!"
+          sudo docker-compose exec -T web python manage.py migrate
