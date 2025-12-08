@@ -127,6 +127,9 @@ jobs:
           STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
           ENVFILE
           
+          sudo usermod -aG docker $USER
+          sudo usermod -aG docker ${{ secrets.SSH_USER }}
+
           # Останавливаем старые контейнеры
           docker-compose down || true
           
