@@ -88,6 +88,7 @@ jobs:
       - name: Copy project files to server
         run: |
           rsync -avz \
+            --rsync-path="sudo rsync" \
             --exclude '__pycache__' \
             --exclude '*.pyc' \
             --exclude '.git' \
