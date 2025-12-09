@@ -81,10 +81,11 @@ class Migration(migrations.Migration):
                     "is_active",
                     models.BooleanField(
                         default=True,
-                        help_text=("\n"
-                                   "Designates whether this user should be treated as active. \n"
-                                   "Unselect this instead of deleting accounts.\n"
-                                   ),
+                        help_text=(
+                            "\n"
+                            "Designates whether this user should be treated as active. \n"
+                            "Unselect this instead of deleting accounts.\n"
+                        ),
                         verbose_name="active",
                     ),
                 ),
@@ -105,10 +106,11 @@ class Migration(migrations.Migration):
                     "groups",
                     models.ManyToManyField(
                         blank=True,
-                        help_text=("\n"
-                                   "The groups this user belongs to. \n"
-                                   "A user will get all permissions granted to each of their groups.\n"
-                                   ),
+                        help_text=(
+                            "\n"
+                            "The groups this user belongs to. \n"
+                            "A user will get all permissions granted to each of their groups.\n"
+                        ),
                         related_name="user_set",
                         related_query_name="user",
                         to="auth.group",

@@ -5,9 +5,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from materials.models import Payment
 from users.models import User
 from users.permission import IsOwner
-from users.serializers import (PaymentSerializer, PrivateUserProfileSerializer,
-                               PublicUserProfileSerializer,
-                               UserProfileSerializer)
+from users.serializers import (
+    PaymentSerializer,
+    PrivateUserProfileSerializer,
+    PublicUserProfileSerializer,
+    UserProfileSerializer,
+)
 
 
 class UserCreateAPIView(generics.CreateAPIView):

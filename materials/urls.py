@@ -2,9 +2,15 @@ from django.urls import include, path
 from rest_framework.permissions import AllowAny
 from rest_framework.routers import DefaultRouter
 
-from materials.views import (CourseViewSet, LessonLCAPIView, LessonRUDAPIView,
-                             PaymentCancelAPIView, PaymentCreateAPIView,
-                             PaymentSuccessAPIView, SubscribeAPIView)
+from materials.views import (
+    CourseViewSet,
+    LessonLCAPIView,
+    LessonRUDAPIView,
+    PaymentCancelAPIView,
+    PaymentCreateAPIView,
+    PaymentSuccessAPIView,
+    SubscribeAPIView,
+)
 
 app_name = "materials"
 router = DefaultRouter()

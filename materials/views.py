@@ -10,14 +10,20 @@ from rest_framework.response import Response
 
 from materials.models import Course, Lesson, Subscribe
 from materials.paginators import CoursePagination
-from materials.serializers import (CourseDetailSerializer, CourseSerializer,
-                                   LessonSerializer, SubscriptionSerializer)
+from materials.serializers import (
+    CourseDetailSerializer,
+    CourseSerializer,
+    LessonSerializer,
+    SubscriptionSerializer,
+)
 from materials.tasks import send_course_update_notification
 from users.permission import IsModer, IsOwner
 from users.serializers import PaymentSerializer
-from users.services.stripe_service import (create_stripe_price,
-                                           create_stripe_product,
-                                           create_stripe_session)
+from users.services.stripe_service import (
+    create_stripe_price,
+    create_stripe_product,
+    create_stripe_session,
+)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
