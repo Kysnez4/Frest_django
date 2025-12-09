@@ -19,6 +19,7 @@ jobs:
       - run: flake8 .
 
   build:
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +34,7 @@ jobs:
         run: docker-compose build
 
   test:
+    needs: build
     runs-on: ubuntu-latest
 
     services:
