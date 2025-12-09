@@ -19,7 +19,7 @@ jobs:
       - run: flake8 .
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: docker-latest
     steps:
       - uses: actions/checkout@v4
       - name: Build Docker images
