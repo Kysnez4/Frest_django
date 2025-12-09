@@ -2,9 +2,9 @@ name: Django CI/CD with Docker
 
 on:
   push:
-    branches: [main, master]
+    branches: [ main, master ]
   pull_request:
-    branches: [main, master]
+    branches: [ main, master ]
 
 jobs:
   lint:
@@ -34,8 +34,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: lint
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
+    strategy:
+      matrix:
+        target: [ web, celery, celery-beat ]
+
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -43,39 +45,28 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Login to DockerHub (optional)
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Extract metadata for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/django-app
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
-
-      - name: Build and push Docker image
+      - name: Build Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          target: ${{ matrix.target }}
+          tags: |
+            django-${{ matrix.target }}:latest
+            django-${{ matrix.target }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          outputs: type=docker,dest=/tmp/django-${{ matrix.target }}.tar
+          push: false
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: django-${{ matrix.target }}-image
+          path: /tmp/django-${{ matrix.target }}.tar
 
   test:
     runs-on: ubuntu-latest
-    needs: [lint, build]
+    needs: [ lint, build ]
 
     services:
       postgres:
@@ -190,68 +181,68 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [test, build]
+    needs: [ test, build ]
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Copy project files to server
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.SERVER_IP }}
-        username: ${{ secrets.SSH_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        script: |
-          sudo mkdir -p "${{ secrets.DEPLOY_DIR }}"
-          cd ${{ secrets.DEPLOY_DIR }}
-          
-          # Если это git репозиторий, обновляем, иначе клонируем
-          if [ -d .git ]; then
-            sudo git pull origin main
-          else
-            sudo git clone https://github.com/${{ github.repository }} .
-          fi
+      - name: Copy project files to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            sudo mkdir -p "${{ secrets.DEPLOY_DIR }}"
+            cd ${{ secrets.DEPLOY_DIR }}
+            
+            # Если это git репозиторий, обновляем, иначе клонируем
+            if [ -d .git ]; then
+              sudo git pull origin main
+            else
+              sudo git clone https://github.com/${{ github.repository }} .
+            fi
 
-    - name: Deploy with Docker Compose
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.SERVER_IP }}
-        username: ${{ secrets.SSH_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        script: |
-          cd ${{ secrets.DEPLOY_DIR }}
-
-          cat > .env << 'ENVFILE'
-          DEBUG=${{ secrets.DEBUG }}
-          SECRET_KEY=${{ secrets.SECRET_KEY }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_HOST=${{ secrets.DB_HOST }}
-          DB_PORT=${{ secrets.DB_PORT }}
-          REDIS_URL=redis://redis:6379/0
-          CELERY_BROKER_URL=redis://redis:6379/0
-          CELERY_RESULT_BACKEND=redis://redis:6379/0
-          EMAIL_BACKEND=${{ secrets.EMAIL_BACKEND }}
-          EMAIL_HOST=${{ secrets.EMAIL_HOST }}
-          EMAIL_PORT=${{ secrets.EMAIL_PORT }}
-          EMAIL_USE_TLS=${{ secrets.EMAIL_USE_TLS }}
-          EMAIL_USE_SSL=${{ secrets.EMAIL_USE_SSL }}
-          EMAIL_HOST_USER=${{ secrets.EMAIL_HOST_USER }}
-          EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}
-          DEFAULT_FROM_EMAIL=${{ secrets.DEFAULT_FROM_EMAIL }}
-          CACHE_ENABLED=${{ secrets.CACHE_ENABLED }}
-          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
-          STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          ENVFILE
-          
-
-          # Останавливаем старые контейнеры
-          sudo docker-compose down
-          
-          # Собираем и запускаем
-          sudo docker-compose up -d --build
-          
-          # Ждем запуска и выполняем миграции
-          sleep 10
-          sudo docker-compose exec -T web python manage.py migrate
+      - name: Deploy with Docker Compose
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ${{ secrets.DEPLOY_DIR }}
+            
+            cat > .env << 'ENVFILE'
+            DEBUG=${{ secrets.DEBUG }}
+            SECRET_KEY=${{ secrets.SECRET_KEY }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_USER=${{ secrets.DB_USER }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_HOST=${{ secrets.DB_HOST }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            REDIS_URL=redis://redis:6379/0
+            CELERY_BROKER_URL=redis://redis:6379/0
+            CELERY_RESULT_BACKEND=redis://redis:6379/0
+            EMAIL_BACKEND=${{ secrets.EMAIL_BACKEND }}
+            EMAIL_HOST=${{ secrets.EMAIL_HOST }}
+            EMAIL_PORT=${{ secrets.EMAIL_PORT }}
+            EMAIL_USE_TLS=${{ secrets.EMAIL_USE_TLS }}
+            EMAIL_USE_SSL=${{ secrets.EMAIL_USE_SSL }}
+            EMAIL_HOST_USER=${{ secrets.EMAIL_HOST_USER }}
+            EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}
+            DEFAULT_FROM_EMAIL=${{ secrets.DEFAULT_FROM_EMAIL }}
+            CACHE_ENABLED=${{ secrets.CACHE_ENABLED }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+            ENVFILE
+            
+            
+            # Останавливаем старые контейнеры
+            sudo docker-compose down
+            
+            # Собираем и запускаем
+            sudo docker-compose up -d --build
+            
+            # Ждем запуска и выполняем миграции
+            sleep 10
+            sudo docker-compose exec -T web python manage.py migrate
