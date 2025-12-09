@@ -1,49 +1,41 @@
+from django.contrib.auth.models import Group
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from django.contrib.auth.models import Group
 
-from users.models import User
 from materials.models import Course, Lesson, Subscribe
+from users.models import User
 
 
 class LessonTestCase(APITestCase):
     def setUp(self):
         # Создаем группы прав
-        self.moder_group = Group.objects.create(name='moders')
+        self.moder_group = Group.objects.create(name="moders")
 
         # Создаем тестовых пользователей
         self.owner = User.objects.create(
-            email='owner@test.com',
-            password='testpass123',
-            is_active=True
+            email="owner@test.com", password="testpass123", is_active=True
         )
         self.moderator = User.objects.create(
-            email='moder@test.com',
-            password='testpass123',
-            is_active=True
+            email="moder@test.com", password="testpass123", is_active=True
         )
         self.moderator.groups.add(self.moder_group)
         self.other_user = User.objects.create(
-            email='other@test.com',
-            password='testpass123',
-            is_active=True
+            email="other@test.com", password="testpass123", is_active=True
         )
 
         # Создаем тестовый курс
         self.course = Course.objects.create(
-            name='Test Course',
-            description='Test Description',
-            owner=self.owner
+            name="Test Course", description="Test Description", owner=self.owner
         )
 
         # Создаем тестовый урок
         self.lesson = Lesson.objects.create(
-            name='Test Lesson',
-            description='Test Lesson Description',
+            name="Test Lesson",
+            description="Test Lesson Description",
             course=self.course,
-            video_url='https://www.youtube.com/test',
-            owner=self.owner
+            video_url="https://www.youtube.com/test",
+            owner=self.owner,
         )
 
         # URL для уроков
@@ -54,14 +46,14 @@ class LessonTestCase(APITestCase):
         """Тест создания урока владельцем"""
         self.client.force_authenticate(user=self.owner)
         data = {
-            'name': 'New Lesson',
-            'description': 'New Description',
-            'course': self.course.id,
-            'video_url': 'https://www.youtube.com/new'
+            "name": "New Lesson",
+            "description": "New Description",
+            "course": self.course.id,
+            "video_url": "https://www.youtube.com/new",
         }
         response = self.client.post(self.lessons_list_url, data)
         if response.status_code != status.HTTP_201_CREATED:
-            print('RESPONSE DATA:', response.data)
+            print("RESPONSE DATA:", response.data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Lesson.objects.count(), 2)
         self.assertEqual(Lesson.objects.last().owner, self.owner)
@@ -70,10 +62,10 @@ class LessonTestCase(APITestCase):
         """Тест что модератор не может создать урок"""
         self.client.force_authenticate(user=self.moderator)
         data = {
-            'name': 'New Lesson',
-            'description': 'New Description',
-            'course': self.course.id,
-            'video_url': 'https://www.youtube.com/new'
+            "name": "New Lesson",
+            "description": "New Description",
+            "course": self.course.id,
+            "video_url": "https://www.youtube.com/new",
         }
         response = self.client.post(self.lessons_list_url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -81,25 +73,25 @@ class LessonTestCase(APITestCase):
     def test_lesson_update_by_owner(self):
         """Тест обновления урока владельцем"""
         self.client.force_authenticate(user=self.owner)
-        data = {'name': 'Updated Lesson'}
+        data = {"name": "Updated Lesson"}
         response = self.client.patch(self.lesson_detail_url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.lesson.refresh_from_db()
-        self.assertEqual(self.lesson.name, 'Updated Lesson')
+        self.assertEqual(self.lesson.name, "Updated Lesson")
 
     def test_lesson_update_by_moderator(self):
         """Тест обновления урока модератором"""
         self.client.force_authenticate(user=self.moderator)
-        data = {'name': 'Updated by Moder'}
+        data = {"name": "Updated by Moder"}
         response = self.client.patch(self.lesson_detail_url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.lesson.refresh_from_db()
-        self.assertEqual(self.lesson.name, 'Updated by Moder')
+        self.assertEqual(self.lesson.name, "Updated by Moder")
 
     def test_lesson_update_by_other_user(self):
         """Тест что другой пользователь не может обновить урок"""
         self.client.force_authenticate(user=self.other_user)
-        data = {'name': 'Updated by Other'}
+        data = {"name": "Updated by Other"}
         response = self.client.patch(self.lesson_detail_url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -127,34 +119,30 @@ class SubscriptionTestCase(APITestCase):
     def setUp(self):
         # Создаем тестовых пользователей
         self.user1 = User.objects.create(
-            email='user1@test.com',
-            password='testpass123',
-            is_active=True
+            email="user1@test.com", password="testpass123", is_active=True
         )
         self.user2 = User.objects.create(
-            email='user2@test.com',
-            password='testpass123',
-            is_active=True
+            email="user2@test.com", password="testpass123", is_active=True
         )
 
         # Создаем тестовый курс
         self.course = Course.objects.create(
-            name='Test Course',
-            description='Test Description',
-            owner=self.user1
+            name="Test Course", description="Test Description", owner=self.user1
         )
 
         # URL для подписок
         self.subscribe_url = reverse(
-            "materials:subscribe",
-            kwargs={"course_id": self.course.id})
+            "materials:subscribe", kwargs={"course_id": self.course.id}
+        )
 
     def test_subscribe(self):
         """Тест подписки на курс"""
         self.client.force_authenticate(user=self.user1)
         response = self.client.post(self.subscribe_url)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(Subscribe.objects.filter(user=self.user1, course=self.course).exists())
+        self.assertTrue(
+            Subscribe.objects.filter(user=self.user1, course=self.course).exists()
+        )
 
     def test_double_subscribe(self):
         """Тест двойной подписки на курс"""
@@ -173,7 +161,9 @@ class SubscriptionTestCase(APITestCase):
         # Затем отписываемся
         response = self.client.delete(self.subscribe_url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(Subscribe.objects.filter(user=self.user1, course=self.course).exists())
+        self.assertFalse(
+            Subscribe.objects.filter(user=self.user1, course=self.course).exists()
+        )
 
     def test_unsubscribe_without_subscription(self):
         """Тест отписки без существующей подписки"""
@@ -190,7 +180,7 @@ class SubscriptionTestCase(APITestCase):
         self.client.force_authenticate(user=self.user1)
         response = self.client.get(course_detail_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(response.data['is_subscribed'])
+        self.assertFalse(response.data["is_subscribed"])
 
         # Создаем подписку
         Subscribe.objects.create(user=self.user1, course=self.course)
@@ -198,4 +188,4 @@ class SubscriptionTestCase(APITestCase):
         # Проверяем для подписанного пользователя
         response = self.client.get(course_detail_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['is_subscribed'])
+        self.assertTrue(response.data["is_subscribed"])

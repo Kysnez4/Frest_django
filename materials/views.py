@@ -1,23 +1,23 @@
 from datetime import timedelta
 
-from rest_framework import viewsets, generics, status
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework import generics, status, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.urls import reverse
-from django.utils import timezone
 
 from materials.models import Course, Lesson, Subscribe
 from materials.paginators import CoursePagination
+from materials.serializers import (CourseDetailSerializer, CourseSerializer,
+                                   LessonSerializer, SubscriptionSerializer)
 from materials.tasks import send_course_update_notification
 from users.permission import IsModer, IsOwner
 from users.serializers import PaymentSerializer
-from users.services.stripe_service import create_stripe_session, create_stripe_product, create_stripe_price
-from materials.serializers import (CourseSerializer,
-                                   LessonSerializer,
-                                   SubscriptionSerializer,
-                                   CourseDetailSerializer)
+from users.services.stripe_service import (create_stripe_price,
+                                           create_stripe_product,
+                                           create_stripe_session)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -26,11 +26,11 @@ class CourseViewSet(viewsets.ModelViewSet):
     pagination_class = CoursePagination
 
     def get_permissions(self):
-        if self.action == 'create':
+        if self.action == "create":
             self.permission_classes = (~IsModer,)
-        elif self.action in ['update', 'retrieve']:
+        elif self.action in ["update", "retrieve"]:
             self.permission_classes = (IsModer | IsOwner,)
-        elif self.action == 'destroy':
+        elif self.action == "destroy":
             self.permission_classes = (~IsModer | IsOwner,)
         return super().get_permissions()
 
@@ -44,11 +44,11 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['request'] = self.request
+        context["request"] = self.request
         return context
 
     def get_serializer_class(self):
-        if self.action == 'retrieve':
+        if self.action == "retrieve":
             return CourseDetailSerializer
         return CourseSerializer
 
@@ -93,13 +93,13 @@ class LessonRUDAPIView(generics.RetrieveUpdateDestroyAPIView):
 class SubscribeAPIView(generics.CreateAPIView, generics.DestroyAPIView):
     serializer_class = SubscriptionSerializer
     permission_classes = [IsAuthenticated]
-    lookup_field = 'course_id'
+    lookup_field = "course_id"
 
     def get_queryset(self):
         return Subscribe.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        course_id = self.kwargs.get('course_id')
+        course_id = self.kwargs.get("course_id")
         course = get_object_or_404(Course, id=course_id)
         if self.get_queryset().filter(course=course).exists():
             raise ValidationError("You are already subscribed to this course.")
@@ -107,8 +107,7 @@ class SubscribeAPIView(generics.CreateAPIView, generics.DestroyAPIView):
 
     def delete(self, request, *args, **kwargs):
         subscription = get_object_or_404(
-            self.get_queryset(),
-            course_id=self.kwargs.get('course_id')
+            self.get_queryset(), course_id=self.kwargs.get("course_id")
         )
         subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -130,18 +129,10 @@ class PaymentCreateAPIView(generics.CreateAPIView):
         payment.stripe_price_id = price.id
 
         # Создаем сессию оплаты
-        success_url = self.request.build_absolute_uri(
-            reverse('payment-success')
-        )
-        cancel_url = self.request.build_absolute_uri(
-            reverse('payment-cancel')
-        )
+        success_url = self.request.build_absolute_uri(reverse("payment-success"))
+        cancel_url = self.request.build_absolute_uri(reverse("payment-cancel"))
 
-        session = create_stripe_session(
-            price.id,
-            success_url,
-            cancel_url
-        )
+        session = create_stripe_session(price.id, success_url, cancel_url)
 
         payment.stripe_session_id = session.id
         payment.stripe_payment_link = session.url

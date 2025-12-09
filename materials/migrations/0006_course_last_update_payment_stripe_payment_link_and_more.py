@@ -6,38 +6,40 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('materials', '0005_alter_lesson_preview'),
+        ("materials", "0005_alter_lesson_preview"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='course',
-            name='last_update',
-            field=models.DateTimeField(auto_now=True, verbose_name='Последнее обновление'),
+            model_name="course",
+            name="last_update",
+            field=models.DateTimeField(
+                auto_now=True, verbose_name="Последнее обновление"
+            ),
         ),
         migrations.AddField(
-            model_name='payment',
-            name='stripe_payment_link',
+            model_name="payment",
+            name="stripe_payment_link",
             field=models.URLField(blank=True, max_length=500, null=True),
         ),
         migrations.AddField(
-            model_name='payment',
-            name='stripe_payment_status',
+            model_name="payment",
+            name="stripe_payment_status",
             field=models.CharField(blank=True, max_length=50, null=True),
         ),
         migrations.AddField(
-            model_name='payment',
-            name='stripe_price_id',
+            model_name="payment",
+            name="stripe_price_id",
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
         migrations.AddField(
-            model_name='payment',
-            name='stripe_product_id',
+            model_name="payment",
+            name="stripe_product_id",
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
         migrations.AddField(
-            model_name='payment',
-            name='stripe_session_id',
+            model_name="payment",
+            name="stripe_session_id",
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
     ]
