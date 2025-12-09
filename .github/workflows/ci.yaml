@@ -10,91 +10,20 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Install linting dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8 black
-
-      - name: Check code formatting with Black
-        run: |
-          black --check --diff .
-
-      - name: Run flake8 for style guide enforcement
-        run: |
-          flake8 .
+      - run: pip install flake8 black
+      - run: black --check .
+      - run: flake8 .
 
   build:
     runs-on: ubuntu-latest
-    needs: lint
-
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build web image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          target: web
-          tags: django-web:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/django-web.tar
-          push: false
-
-      - name: Upload web image artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: django-web-image
-          path: /tmp/django-web.tar
-          retention-days: 1
-
-      - name: Build celery image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          target: celery
-          tags: django-celery:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/django-celery.tar
-          push: false
-
-      - name: Upload celery image artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: django-celery-image
-          path: /tmp/django-celery.tar
-          retention-days: 1
-
-      - name: Build celery-beat image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          target: celery-beat
-          tags: django-celery-beat:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/django-celery-beat.tar
-          push: false
-
-      - name: Upload celery-beat image artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: django-celery-beat-image
-          path: /tmp/django-celery-beat.tar
-          retention-days: 1
+      - uses: actions/checkout@v4
+      - name: Build Docker images
+        run: docker-compose build
 
   test:
     runs-on: ubuntu-latest
