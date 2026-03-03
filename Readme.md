@@ -2,7 +2,6 @@
 
 ## 📝 Улучшенная версия README.md
 
-```markdown
 # 🚀 Django + Docker + Celery + Redis + PostgreSQL
 
 Полная инструкция по развертыванию Django проекта с Docker, Celery, Redis и PostgreSQL.
