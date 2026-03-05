@@ -1,8 +1,4 @@
-Отлично, вы уже создали хороший README! Давайте его улучшим и добавим недостающие части для полной документации.
-
-## 📝 Улучшенная версия README.md
-
-# 🚀 Django + Docker + Celery + Redis + PostgreSQL
+# 🚀 LMS Platform
 
 Полная инструкция по развертыванию Django проекта с Docker, Celery, Redis и PostgreSQL.
 
